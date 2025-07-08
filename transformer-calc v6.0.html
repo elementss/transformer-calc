@@ -1125,7 +1125,7 @@
         <div class="input-group">
           <label>📝 输入文字</label>
           <input type="text" id="inputText" style="flex: 1;"
-                 placeholder="例如：10kV员热F29员村石东联社（科韵路）开关房G03柜603开关">
+                 placeholder="例如：10kV员某F29某村某东联社（科某路）开关房G03柜603开关">
         </div>
         <div class="button-group">
           <button class="btn-success" onclick="processText()">
@@ -1204,8 +1204,8 @@
     // 加载示例数据
     function loadSampleData() {
       const sampleData = `项目名称：广州市天河区珠吉街吉山第二股份合作经济社业扩配套项目
-电房名称：珠江花城2号开关房
-开关名称：珠江花城2号开关房G01柜601开关
+电房名称：某某花城2号开关房
+开关名称：某某花城2号开关房G01柜601开关
 开关后段变压器容量：630kVA
 断路器柜厂家名称：穂达
 微机厂家名称：珠海科众
@@ -1214,9 +1214,9 @@
 送电时间：2025年07月16日
 申请原因：新投运
 
-，1、项目名称：天河区高普路68号地块10kV供电设施迁改项目（临迁）
-电房名称：10kV高塘F10高普路68号开关房
-开关名称：10kV高塘F10高普路68号开关房G04柜
+，1、项目名称：某某区高某路68号地块10kV供电设施迁改项目（临迁）
+电房名称：10kV高某F10某某路68号开关房
+开关名称：10kV高某F10某某路68号开关房G04柜
 开关后段变压器容量：1250kVA+1250kVA
 断路器柜厂家名称：希格玛电气（珠海）有限公司
 微机厂家名称：珠海万力达电气技术股份有限公司
@@ -1724,7 +1724,7 @@ ${calc.warning ? '\n⚠️ 警告：负荷电流超过最大值，建议考虑�
       
       exportText += `
 变压器继保定值计算器 v6.0
-开发者：韩翰`;
+开发者：hanhan`;
       
       // 创建并下载文件
       const blob = new Blob([exportText], { type: 'text/plain;charset=utf-8' });
@@ -2096,7 +2096,7 @@ ${document.getElementById('textResult').innerText}
 ${document.getElementById('warningContainer').innerText || ''}
 =====================================
 变压器继保定值计算器 v7.0
-开发者：韩翰`;
+开发者：hanhan`;
 
       // 创建并下载文件
       const blob = new Blob([results], { type: 'text/plain;charset=utf-8' });
