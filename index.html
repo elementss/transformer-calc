@@ -1523,13 +1523,13 @@
         const countNormal = transformerCaps.length;
         const coefficient = countNormal <= 3 ? 25 : (countNormal <= 6 ? 30 : 35);
         const firstProtectionCalc = (maxNormal * coefficient) / (10.5 * 1.732);
-        firstProtection = Math.max(0.57, Math.min(firstProtectionCalc, 2474) / k3);
+        firstProtection = Math.max(0.57, Math.min(firstProtectionCalc, 2479) / k3);
       } else if (motorCaps.length > 0) {
         const maxMotor = Math.max(...motorCaps);
         const countMotor = motorCaps.length;
         const coefficient = countMotor <= 3 ? 25 : (countMotor <= 6 ? 30 : 35);
         const firstProtectionCalc = (maxMotor * coefficient) / (10.5 * 1.732);
-        firstProtection = Math.max(0.57, Math.min(firstProtectionCalc, 2474) / k3);
+        firstProtection = Math.max(0.57, Math.min(firstProtectionCalc, 2479) / k3);
       }
 
       // 计算电机负荷电流
