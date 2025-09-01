@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>变压器继保定值计算器 v6.0</title>
+  <title>变压器继保定值计算器 v6.1</title>
   <style>
     /* CSS 变量定义 - 现代化配色方案 */
     :root {
@@ -815,9 +815,15 @@
 
     .batch-result-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 15px;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
       margin-bottom: 15px;
+    }
+
+    .batch-result-grid > div {
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      min-width: 0;
     }
 
     /* 加载动画 */
@@ -927,8 +933,8 @@
     <div class="header">
       <h1>变压器继保定值计算器</h1>
       <div class="version-info">
-        <p>版本 6.0 | 250702 | 核心重构，全新UI设计</p>
-        <p>开发者：hanhan | 反馈邮箱：icevivi8@gmail.com</p>
+        <p>版本 6.1 | 250901 | 核心重构，全新UI设计</p>
+        <p>开发者：韩翰 | 反馈邮箱：icevivi8@gmail.com</p>
       </div>
     </div>
 
@@ -1057,7 +1063,7 @@
         </div>
         <textarea id="batchInput" placeholder="请粘贴批量数据，系统将自动识别以下信息：
 - 开关名称
-- 变压器容量（支持kVA格式，支持多台相加如：1250kVA+1250kVA）
+- 变压器容量（支持kVA格式，支持多台相加如：1250kVA+1250kVA，支持乘法表达式如：1600kVA*3+1000kVA+800kVA，也支持部分省略单位如：2*1600+2*800kVA+2*1000kVA）
 - 相序CT变比
 - 零序CT变比
 
@@ -1069,7 +1075,7 @@
 
 示例：
 项目名称：xxx项目
-开关名称：某某花城2号开关房G01柜601开关
+开关名称：珠江花城2号开关房G01柜601开关
 开关后段变压器容量：630kVA
 相序CT变比：600/5 10P20级
 零序CT变比：100/5 10P10级"></textarea>
@@ -1125,7 +1131,7 @@
         <div class="input-group">
           <label>📝 输入文字</label>
           <input type="text" id="inputText" style="flex: 1;"
-                 placeholder="例如：10kV员某F29某村某东联社（科某路）开关房G03柜603开关">
+                 placeholder="例如：10kV员热F29员村石东联社（科韵路）开关房G03柜603开关">
         </div>
         <div class="button-group">
           <button class="btn-success" onclick="processText()">
@@ -1203,9 +1209,9 @@
 
     // 加载示例数据
     function loadSampleData() {
-      const sampleData = `项目名称：某某市某某区珠某街吉山第二股份合作经济社业扩配套项目
-电房名称：某某花城2号开关房
-开关名称：某某花城2号开关房G01柜601开关
+      const sampleData = `项目名称：广州市天河区珠吉街吉山第二股份合作经济社业扩配套项目
+电房名称：珠江花城2号开关房
+开关名称：珠江花城2号开关房G01柜601开关
 开关后段变压器容量：630kVA
 断路器柜厂家名称：穂达
 微机厂家名称：珠海科众
@@ -1214,9 +1220,9 @@
 送电时间：2025年07月16日
 申请原因：新投运
 
-，1、项目名称：某某区高某路68号地块10kV供电设施迁改项目（临迁）
-电房名称：10kV高某F10某某路68号开关房
-开关名称：10kV高某F10某某路68号开关房G04柜
+，1、项目名称：天河区高普路68号地块10kV供电设施迁改项目（临迁）
+电房名称：10kV高塘F10高普路68号开关房
+开关名称：10kV高塘F10高普路68号开关房G04柜
 开关后段变压器容量：1250kVA+1250kVA
 断路器柜厂家名称：希格玛电气（珠海）有限公司
 微机厂家名称：珠海万力达电气技术股份有限公司
@@ -1226,6 +1232,92 @@
 申请原因：新投产`;
       
       document.getElementById('batchInput').value = sampleData;
+    }
+
+    // 解析容量表达式，支持加法和乘法
+    function parseCapacityExpression(capacityStr) {
+      const capacities = [];
+      
+      // 移除空格并转换为标准格式
+      let normalized = capacityStr.replace(/\s+/g, '').toLowerCase();
+      
+      // 处理不同的运算符
+      normalized = normalized.replace(/[＋]/g, '+');
+      normalized = normalized.replace(/[×]/g, '*');
+      
+      // 分割成项 (按 + 分割)
+      const terms = normalized.split('+');
+      
+      for (let term of terms) {
+        term = term.trim();
+        
+        // 检查是否包含乘法
+        if (term.includes('*')) {
+          // 解析乘法表达式，支持多种格式：
+          // "1600kva*3", "3*1600kva", "2*1600", "1600*3"
+          const multiplyMatch = term.match(/(\d+(?:\.\d+)?)(?:kva)?\s*\*\s*(\d+(?:\.\d+)?)(?:kva)?/);
+          if (multiplyMatch) {
+            const num1 = parseFloat(multiplyMatch[1]);
+            const num2 = parseFloat(multiplyMatch[2]);
+            
+            // 判断哪个是容量，哪个是数量
+            let capacity, count;
+            
+            // 检查是否有 kva 单位
+            const hasKvaInTerm = term.includes('kva');
+            const kvaPosition = term.indexOf('kva');
+            const starPosition = term.indexOf('*');
+            
+            if (hasKvaInTerm) {
+              // 有 kva 单位，根据位置判断
+              if (kvaPosition < starPosition) {
+                // kva 在 * 前面，如 "1600kva*3"
+                capacity = num1;
+                count = num2;
+              } else {
+                // kva 在 * 后面，如 "3*1600kva"
+                capacity = num2;
+                count = num1;
+              }
+            } else {
+              // 没有 kva 单位，采用智能判断：
+              // 通常较大的数是容量，较小的数是数量
+              // 但也考虑常见的容量值范围 (100-5000kVA)
+              if (num1 >= 100 && num1 <= 5000 && num2 >= 1 && num2 <= 20) {
+                // num1 像容量值，num2 像数量，如 "1600*3"
+                capacity = num1;
+                count = num2;
+              } else if (num2 >= 100 && num2 <= 5000 && num1 >= 1 && num1 <= 20) {
+                // num2 像容量值，num1 像数量，如 "3*1600"
+                capacity = num2;
+                count = num1;
+              } else {
+                // 无法明确判断时，默认较大的是容量
+                if (num1 > num2) {
+                  capacity = num1;
+                  count = num2;
+                } else {
+                  capacity = num2;
+                  count = num1;
+                }
+              }
+            }
+            
+            // 添加相应数量的容量
+            for (let i = 0; i < count; i++) {
+              capacities.push(capacity);
+            }
+          }
+        } else {
+          // 单个容量值
+          const singleMatch = term.match(/(\d+(?:\.\d+)?)(?:kva)?/);
+          if (singleMatch) {
+            capacities.push(parseFloat(singleMatch[1]));
+          }
+        }
+      }
+      
+      return capacities;
     }
 
     // 解析批量数据
@@ -1292,36 +1384,25 @@
           }
         }
         
-        // 2. 解析变压器容量 - 支持多台变压器
+        // 2. 解析变压器容量 - 支持多台变压器，包括乘法表达式
         const capacityPatterns = [
           /变压器容量[：:]\s*(.+?)(?=\n|断路器|微机|相序|零序|送电|申请|$)/,
-          /(\d+(?:\.\d+)?\s*kVA(?:\s*[+＋]\s*\d+(?:\.\d+)?\s*kVA)*)/i
+          /(\d+(?:\.\d+)?\s*kVA(?:\s*[+＋*×]\s*\d+(?:\.\d+)?\s*(?:kVA)?)*)/i
         ];
         
         for (let pattern of capacityPatterns) {
           const match = item.match(pattern);
           if (match) {
             const capacityStr = match[1];
-            // 处理多台变压器的情况
-            if (capacityStr.includes('+') || capacityStr.includes('＋')) {
-              const capacities = capacityStr.match(/\d+(?:\.\d+)?/g);
-              if (capacities) {
-                // 保存多台变压器的容量数组
-                data.parsed.capacities = capacities.map(cap => parseFloat(cap));
-                data.parsed.capacityUnit = 'kVA';
-                data.parsed.isMultiple = true;
-                data.parsed.capacityNote = `${capacities.length}台变压器：${capacityStr}`;
-                // 用于显示，但不用于计算
-                data.parsed.capacity = data.parsed.capacities[0]; // 使用第一台的容量显示
-              }
-            } else {
-              const singleCapMatch = capacityStr.match(/(\d+(?:\.\d+)?)\s*kVA/i);
-              if (singleCapMatch) {
-                data.parsed.capacity = parseFloat(singleCapMatch[1]);
-                data.parsed.capacityUnit = 'kVA';
-                data.parsed.isMultiple = false;
-                data.parsed.capacities = [parseFloat(singleCapMatch[1])]; // 确保单台也有capacities数组
-              }
+            // 解析容量字符串，支持加法和乘法
+            const parsedCapacities = parseCapacityExpression(capacityStr);
+            
+            if (parsedCapacities && parsedCapacities.length > 0) {
+              data.parsed.capacities = parsedCapacities;
+              data.parsed.capacityUnit = 'kVA';
+              data.parsed.isMultiple = parsedCapacities.length > 1;
+              data.parsed.capacityNote = `${parsedCapacities.length}台变压器：${capacityStr}`;
+              data.parsed.capacity = parsedCapacities[0]; // 用于显示第一台
             }
             break;
           }
@@ -1640,11 +1721,11 @@
             <span>📊</span>
             序号 ${result.index}: ${result.parsed.switchName}
           </div>
+          <div style="margin-bottom: 15px; padding: 12px; background: var(--primary-light); border-radius: var(--radius-sm); border-left: 4px solid var(--primary-color);">
+            <div class="result-label" style="font-size: 0.9rem; margin-bottom: 5px;">变压器容量</div>
+            <div style="font-weight: bold; font-size: 1.1rem; color: var(--primary-color); word-break: break-all;">${capacityDisplay}</div>
+          </div>
           <div class="batch-result-grid">
-            <div>
-              <div class="result-label">容量</div>
-              <div style="font-weight: bold;">${capacityDisplay}</div>
-            </div>
             <div>
               <div class="result-label">负荷电流</div>
               <div style="font-weight: bold;">${calc.loadCurrent.toFixed(2)} A</div>
@@ -1724,7 +1805,7 @@ ${calc.warning ? '\n⚠️ 警告：负荷电流超过最大值，建议考虑�
       
       exportText += `
 变压器继保定值计算器 v6.0
-开发者：hanhan`;
+开发者：韩翰`;
       
       // 创建并下载文件
       const blob = new Blob([exportText], { type: 'text/plain;charset=utf-8' });
@@ -2096,7 +2177,7 @@ ${document.getElementById('textResult').innerText}
 ${document.getElementById('warningContainer').innerText || ''}
 =====================================
 变压器继保定值计算器 v7.0
-开发者：hanhan`;
+开发者：韩翰`;
 
       // 创建并下载文件
       const blob = new Blob([results], { type: 'text/plain;charset=utf-8' });
