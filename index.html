@@ -1101,8 +1101,22 @@
         <!-- 解析预览 -->
         <div id="batchPreview" style="display: none;">
           <h3 style="color: var(--primary-color); margin-bottom: 20px;">解析结果预览</h3>
+          
+          <!-- 调试信息 -->
+          <div id="debugInfo" style="margin-bottom: 15px; padding: 10px; background: #f0f0f0; border-radius: 6px; font-family: monospace; font-size: 12px; display: none;">
+            <div style="font-weight: bold; margin-bottom: 5px;">🔍 调试信息（浏览器兼容性诊断）</div>
+            <div id="debugDetails"></div>
+          </div>
+          
           <div class="stats-container" id="batchStats"></div>
           <div class="batch-preview" id="batchPreviewContent"></div>
+          
+          <!-- 调试按钮 -->
+          <div style="margin-top: 10px; text-align: center;">
+            <button onclick="toggleDebugInfo()" style="background: #6c757d; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 12px; cursor: pointer;">
+              🔧 显示/隐藏调试信息
+            </button>
+          </div>
         </div>
 
         <!-- 批量计算结果 -->
@@ -1193,8 +1207,110 @@
 
     // 初始化
     document.addEventListener('DOMContentLoaded', function() {
+      // 浏览器兼容性检测
+      checkBrowserCompatibility();
+      
+      // 初始化页面
       updateCapacityDisplay();
+      
+      // 初始化事件监听器
+      initializeEventListeners();
     });
+
+    // 浏览器兼容性检测
+    function checkBrowserCompatibility() {
+      var isCompatible = true;
+      var warnings = [];
+      
+      // 检测基本的JavaScript功能
+      try {
+        // 检测正则表达式支持
+        var testRegex = /test/;
+        if (!testRegex.test) {
+          isCompatible = false;
+          warnings.push('正则表达式支持不完整');
+        }
+        
+        // 检测数组方法支持
+        var testArray = [1, 2, 3];
+        if (!testArray.indexOf || !testArray.filter) {
+          isCompatible = false;
+          warnings.push('数组方法支持不完整');
+        }
+        
+        // 检测字符串方法支持
+        var testString = "test";
+        if (!testString.trim || !testString.indexOf) {
+          isCompatible = false;
+          warnings.push('字符串方法支持不完整');
+        }
+        
+        // 检测console支持
+        if (typeof console === 'undefined' || !console.warn) {
+          // 创建简单的console对象
+          window.console = {
+            log: function() {},
+            warn: function() {},
+            error: function() {}
+          };
+        }
+        
+      } catch (error) {
+        isCompatible = false;
+        warnings.push('JavaScript引擎兼容性问题');
+      }
+      
+      // 如果有兼容性问题，显示警告
+      if (!isCompatible || warnings.length > 0) {
+        var warningMessage = '检测到浏览器兼容性问题：' + warnings.join('、') + 
+          '\n建议使用Chrome、Firefox、Edge等现代浏览器以获得最佳体验。';
+        
+        // 延迟显示警告，避免阻塞页面加载
+        setTimeout(function() {
+          if (confirm(warningMessage + '\n\n是否继续使用？')) {
+            console.log('用户选择继续使用');
+          }
+        }, 1000);
+      }
+    }
+
+    // 初始化事件监听器
+    function initializeEventListeners() {
+      // 输入验证事件
+      var k3Input = document.getElementById('k3');
+      var k0Input = document.getElementById('k0');
+      
+      if (k3Input) {
+        // 使用兼容的事件监听方式
+        if (k3Input.addEventListener) {
+          k3Input.addEventListener('input', validateK3Input);
+        } else if (k3Input.attachEvent) {
+          k3Input.attachEvent('oninput', validateK3Input);
+        }
+      }
+      
+      if (k0Input) {
+        if (k0Input.addEventListener) {
+          k0Input.addEventListener('input', validateK0Input);
+        } else if (k0Input.attachEvent) {
+          k0Input.attachEvent('oninput', validateK0Input);
+        }
+      }
+    }
+
+    // K3输入验证
+    function validateK3Input() {
+      var value = this.value ? this.value.trim() : '';
+      var isValid = !value || /^\d+\s*\/\s*\d+$/.test(value);
+      this.style.borderColor = isValid ? '' : 'var(--danger-color)';
+    }
+
+    // K0输入验证
+    function validateK0Input() {
+      var value = this.value ? this.value.trim() : '';
+      var isValid = !value || /^\d+\s*\/\s*\d+$/.test(value);
+      this.style.borderColor = isValid ? '' : 'var(--danger-color)';
+    }
 
     // 标签页切换
     function switchTab(tabName, element) {
@@ -1232,6 +1348,99 @@
 申请原因：新投产`;
       
       document.getElementById('batchInput').value = sampleData;
+    }
+
+    // 解析容量表达式 - 兼容性增强版本
+    function parseCapacityExpressionSafe(capacityStr) {
+      if (!capacityStr || typeof capacityStr !== 'string') {
+        return [];
+      }
+      
+      var capacities = [];
+      
+      try {
+        // 标准化输入 - 使用更安全的替换方法
+        var normalized = capacityStr.toLowerCase();
+        normalized = normalized.replace(/[＋]/g, '+');
+        normalized = normalized.replace(/[×]/g, '*');
+        normalized = normalized.replace(/[，,]/g, '+');
+        normalized = normalized.replace(/\s+/g, ' ');
+        normalized = normalized.trim();
+        
+        // 按 + 分割
+        var terms = normalized.split('+');
+        
+        for (var i = 0; i < terms.length; i++) {
+          var term = terms[i].trim();
+          if (!term) continue;
+          
+          // 处理乘法表达式（如：2*500kva）
+          if (term.indexOf('*') !== -1) {
+            // 使用更简单的正则表达式避免兼容性问题
+            var multiplyParts = term.split('*');
+            if (multiplyParts.length === 2) {
+              var part1 = multiplyParts[0].trim();
+              var part2 = multiplyParts[1].trim();
+              
+              // 提取数字
+              var num1Match = part1.match(/(\d+(?:\.\d+)?)/);
+              var num2Match = part2.match(/(\d+(?:\.\d+)?)/);
+              
+              if (num1Match && num2Match) {
+                var num1 = parseFloat(num1Match[1]);
+                var num2 = parseFloat(num2Match[1]);
+                
+                if (!isNaN(num1) && !isNaN(num2) && num1 > 0 && num2 > 0) {
+                  var capacity, count;
+                  
+                  // 智能判断哪个是容量，哪个是数量
+                  if (part2.indexOf('kva') !== -1) {
+                    // 第二部分有kva，如 "3*1600kva"
+                    capacity = num2;
+                    count = num1;
+                  } else if (part1.indexOf('kva') !== -1) {
+                    // 第一部分有kva，如 "1600kva*3"
+                    capacity = num1;
+                    count = num2;
+                  } else {
+                    // 没有kva单位，智能判断
+                    if (num1 >= 100 && num1 <= 5000 && num2 >= 1 && num2 <= 20) {
+                      capacity = num1;
+                      count = num2;
+                    } else if (num2 >= 100 && num2 <= 5000 && num1 >= 1 && num1 <= 20) {
+                      capacity = num2;
+                      count = num1;
+                    } else {
+                      capacity = num1 > num2 ? num1 : num2;
+                      count = num1 > num2 ? num2 : num1;
+                    }
+                  }
+                  
+                  // 添加多个相同容量的变压器
+                  for (var j = 0; j < count; j++) {
+                    capacities.push(capacity);
+                  }
+                }
+              }
+            }
+          } else {
+            // 处理单个容量值
+            var singleMatch = term.match(/(\d+(?:\.\d+)?)/);
+            if (singleMatch) {
+              var capacity = parseFloat(singleMatch[1]);
+              if (!isNaN(capacity) && capacity > 0) {
+                capacities.push(capacity);
+              }
+            }
+          }
+        }
+        
+        return capacities.length > 0 ? capacities : [];
+        
+      } catch (error) {
+        console.warn('容量解析出错:', error);
+        return [];
+      }
     }
 
     // 解析容量表达式，支持加法和乘法
@@ -1320,7 +1529,7 @@
       return capacities;
     }
 
-    // 解析批量数据
+    // 解析批量数据 - 兼容性增强版本
     function parseBatchData() {
       const input = document.getElementById('batchInput').value.trim();
       if (!input) {
@@ -1330,131 +1539,207 @@
 
       batchData = [];
       
-      // 智能分割数据项 - 支持多种分隔方式
+      // 智能分割数据项 - 支持多种分隔方式（兼容性优化）
       let items = [];
       
       // 首先移除可能的干扰文本（如 @提及）
       let cleanInput = input.replace(/@[\u4e00-\u9fa5\w\s]+/g, '');
       
-      // 尝试按数字序号分割（如：1、2、等）
-      if (cleanInput.match(/\d+[、.]\s*项目名称/)) {
-        items = cleanInput.split(/(?=\d+[、.]\s*项目名称)/);
+      // 方法1：尝试按数字序号分割（如：1、2、等）- 避免使用正向预查
+      if (cleanInput.indexOf('项目名称') !== -1 && /\d+[、.]\s*项目名称/.test(cleanInput)) {
+        // 使用兼容性更好的分割方法
+        var tempItems = cleanInput.split(/\d+[、.]\s*项目名称/);
+        items = [];
+        var matches = cleanInput.match(/\d+[、.]\s*项目名称[^]*?(?=\d+[、.]\s*项目名称|$)/g);
+        if (matches) {
+          items = matches;
+        } else {
+          // 备用方法：手动分割
+          var parts = cleanInput.split(/(\d+[、.]\s*)/);
+          for (var i = 1; i < parts.length; i += 2) {
+            if (i + 1 < parts.length && parts[i + 1].indexOf('项目名称') !== -1) {
+              items.push(parts[i] + parts[i + 1]);
+            }
+          }
+        }
       }
-      // 尝试按"项目名称"分割（但需要确保是独立的项目开始）
-      else if (cleanInput.includes('项目名称')) {
-        // 使用更精确的分割方式，避免错误分割
-        items = cleanInput.split(/(?=项目名称[：:])/).filter((item, index) => {
-          // 过滤掉第一个空项
-          if (index === 0 && !item.trim()) return false;
+      // 方法2：尝试按"项目名称"分割（兼容性优化）
+      else if (cleanInput.indexOf('项目名称') !== -1) {
+        // 使用简单的分割，然后手动过滤
+        var tempSplit = cleanInput.split('项目名称');
+        items = [];
+        for (var i = 1; i < tempSplit.length; i++) {
+          var item = '项目名称' + tempSplit[i];
           // 确保包含必要的字段
-          return item.includes('开关名称') && item.includes('变压器容量');
-        });
+          if (item.indexOf('开关名称') !== -1 && item.indexOf('变压器容量') !== -1) {
+            items.push(item);
+          }
+        }
       }
-      // 尝试按逗号和换行符组合分割
-      else if (cleanInput.includes('，') && cleanInput.includes('开关名称')) {
-        items = cleanInput.split(/[，,]\s*(?=\d+[、.]|项目名称)/);
+      // 方法3：尝试按逗号分割（兼容性优化）
+      else if (cleanInput.indexOf('，') !== -1 && cleanInput.indexOf('开关名称') !== -1) {
+        items = cleanInput.split(/[，,]/);
+        // 重新组合可能被错误分割的项目
+        var mergedItems = [];
+        var currentItem = '';
+        for (var i = 0; i < items.length; i++) {
+          currentItem += items[i];
+          if (currentItem.indexOf('开关名称') !== -1 && currentItem.indexOf('变压器容量') !== -1) {
+            mergedItems.push(currentItem);
+            currentItem = '';
+          } else if (i < items.length - 1) {
+            currentItem += '，';
+          }
+        }
+        if (currentItem.trim()) {
+          mergedItems.push(currentItem);
+        }
+        items = mergedItems;
       }
-      // 尝试按双换行符分割
+      // 方法4：尝试按双换行符分割
       else {
         items = cleanInput.split(/\n\s*\n/);
       }
       
-      items = items.filter(item => item.trim() && item.length > 50); // 过滤太短的项
+      // 过滤太短的项 - 使用更兼容的方式
+      var filteredItems = [];
+      for (var i = 0; i < items.length; i++) {
+        var item = items[i];
+        if (item && typeof item === 'string' && item.trim() && item.length > 50) {
+          filteredItems.push(item);
+        }
+      }
+      items = filteredItems;
       
-      items.forEach((item, index) => {
-        const data = {
-          index: index + 1,
+      // 遍历每个项目进行解析 - 使用兼容性更好的方式
+      for (var itemIndex = 0; itemIndex < items.length; itemIndex++) {
+        var item = items[itemIndex];
+        var data = {
+          index: itemIndex + 1,
           rawText: item,
           parsed: {}
         };
 
-        // 智能解析各字段
+        // 智能解析各字段 - 兼容性优化
         
-        // 1. 解析开关名称 - 支持多种格式
-        const switchNamePatterns = [
-          /开关名称[：:]\s*([^\n]+?)(?=\n|$)/,
-          /开关名称[：:]\s*(.+?)(?=开关后段|断路器|微机|相序|零序|送电|申请|$)/
-        ];
+        // 1. 解析开关名称 - 支持多种格式（避免复杂正则）
+        var switchName = '';
+        // 尝试第一种格式
+        var switchMatch1 = item.match(/开关名称[：:]\s*([^\n]+)/);
+        if (switchMatch1) {
+          switchName = switchMatch1[1];
+          // 进一步清理，移除可能的后续内容
+          var cleanMatch = switchName.match(/^(.+?)(?=开关后段|断路器|微机|相序|零序|送电|申请|$)/);
+          if (cleanMatch) {
+            switchName = cleanMatch[1];
+          }
+        }
+        if (switchName) {
+          data.parsed.switchName = switchName.trim();
+        }
         
-        for (let pattern of switchNamePatterns) {
-          const match = item.match(pattern);
-          if (match) {
-            data.parsed.switchName = match[1].trim();
-            break;
+        // 2. 解析变压器容量 - 兼容性优化（避免复杂的正向预查）
+        var capacityStr = '';
+        var capacityMatch1 = item.match(/变压器容量[：:]\s*([^\n]+)/);
+        if (capacityMatch1) {
+          capacityStr = capacityMatch1[1];
+          // 进一步清理
+          var cleanCapacity = capacityStr.match(/^(.+?)(?=断路器|微机|相序|零序|送电|申请|$)/);
+          if (cleanCapacity) {
+            capacityStr = cleanCapacity[1];
+          }
+        } else {
+          // 备用方法：直接查找容量模式
+          var capacityMatch2 = item.match(/(\d+(?:\.\d+)?\s*[kK][vV][aA](?:\s*[+＋*×]\s*\d+(?:\.\d+)?\s*(?:[kK][vV][aA])?)*)/i);
+          if (capacityMatch2) {
+            capacityStr = capacityMatch2[1];
           }
         }
         
-        // 2. 解析变压器容量 - 支持多台变压器，包括乘法表达式
-        const capacityPatterns = [
-          /变压器容量[：:]\s*(.+?)(?=\n|断路器|微机|相序|零序|送电|申请|$)/,
-          /(\d+(?:\.\d+)?\s*kVA(?:\s*[+＋*×]\s*\d+(?:\.\d+)?\s*(?:kVA)?)*)/i
-        ];
-        
-        for (let pattern of capacityPatterns) {
-          const match = item.match(pattern);
-          if (match) {
-            const capacityStr = match[1];
-            // 解析容量字符串，支持加法和乘法
-            const parsedCapacities = parseCapacityExpression(capacityStr);
-            
-            if (parsedCapacities && parsedCapacities.length > 0) {
-              data.parsed.capacities = parsedCapacities;
-              data.parsed.capacityUnit = 'kVA';
-              data.parsed.isMultiple = parsedCapacities.length > 1;
-              data.parsed.capacityNote = `${parsedCapacities.length}台变压器：${capacityStr}`;
-              data.parsed.capacity = parsedCapacities[0]; // 用于显示第一台
-            }
-            break;
+        if (capacityStr) {
+          // 解析容量字符串，支持加法和乘法 - 使用更安全的方法
+          var parsedCapacities = parseCapacityExpressionSafe(capacityStr);
+          
+          if (parsedCapacities && parsedCapacities.length > 0) {
+            data.parsed.capacities = parsedCapacities;
+            data.parsed.capacityUnit = 'kVA';
+            data.parsed.isMultiple = parsedCapacities.length > 1;
+            data.parsed.capacityNote = parsedCapacities.length + '台变压器：' + capacityStr;
+            data.parsed.capacity = parsedCapacities[0]; // 用于显示第一台
           }
         }
         
-        // 3. 解析相序CT变比 - 支持多种格式
-        const k3Patterns = [
-          /相序CT变比[：:]\s*(\d+)\s*\/\s*(\d+)/,
-          /相序CT[：:]\s*(\d+)\s*\/\s*(\d+)/,
-          /相序变比[：:]\s*(\d+)\s*\/\s*(\d+)/
+        // 3. 解析相序CT变比 - 简化正则表达式
+        var k3Value = '';
+        var k3Patterns = [
+          /相序CT变比[：:]\s*(\d+)\s*[\/]\s*(\d+)/,
+          /相序CT[：:]\s*(\d+)\s*[\/]\s*(\d+)/,
+          /相序变比[：:]\s*(\d+)\s*[\/]\s*(\d+)/
         ];
         
-        for (let pattern of k3Patterns) {
-          const match = item.match(pattern);
-          if (match) {
-            data.parsed.k3 = `${match[1]}/${match[2]}`;
+        for (var p = 0; p < k3Patterns.length; p++) {
+          var k3Match = item.match(k3Patterns[p]);
+          if (k3Match) {
+            k3Value = k3Match[1] + '/' + k3Match[2];
             break;
           }
         }
+        if (k3Value) {
+          data.parsed.k3 = k3Value;
+        }
         
-        // 4. 解析零序CT变比 - 支持多种格式
-        const k0Patterns = [
-          /零序CT变比[：:]\s*(\d+)\s*\/\s*(\d+)/,
-          /零序CT[：:]\s*(\d+)\s*\/\s*(\d+)/,
-          /零序变比[：:]\s*(\d+)\s*\/\s*(\d+)/
+        // 4. 解析零序CT变比 - 简化正则表达式
+        var k0Value = '';
+        var k0Patterns = [
+          /零序CT变比[：:]\s*(\d+)\s*[\/]\s*(\d+)/,
+          /零序CT[：:]\s*(\d+)\s*[\/]\s*(\d+)/,
+          /零序变比[：:]\s*(\d+)\s*[\/]\s*(\d+)/
         ];
         
-        for (let pattern of k0Patterns) {
-          const match = item.match(pattern);
-          if (match) {
-            data.parsed.k0 = `${match[1]}/${match[2]}`;
+        for (var p = 0; p < k0Patterns.length; p++) {
+          var k0Match = item.match(k0Patterns[p]);
+          if (k0Match) {
+            k0Value = k0Match[1] + '/' + k0Match[2];
             break;
           }
         }
+        if (k0Value) {
+          data.parsed.k0 = k0Value;
+        }
         
-        // 5. 提取其他有用信息
+        // 5. 提取其他有用信息 - 简化正则
         // 项目名称
-        const projectMatch = item.match(/项目名称[：:]\s*(.+?)(?=\n|电房|$)/);
+        var projectMatch = item.match(/项目名称[：:]\s*([^\n]+)/);
         if (projectMatch) {
-          data.parsed.projectName = projectMatch[1].trim();
+          var projectName = projectMatch[1];
+          // 清理后续内容
+          var cleanProject = projectName.match(/^(.+?)(?=电房|$)/);
+          if (cleanProject) {
+            projectName = cleanProject[1];
+          }
+          data.parsed.projectName = projectName.trim();
         }
         
         // 电房名称
-        const roomMatch = item.match(/电房名称[：:]\s*(.+?)(?=\n|开关名称|$)/);
+        var roomMatch = item.match(/电房名称[：:]\s*([^\n]+)/);
         if (roomMatch) {
-          data.parsed.roomName = roomMatch[1].trim();
+          var roomName = roomMatch[1];
+          var cleanRoom = roomName.match(/^(.+?)(?=开关名称|$)/);
+          if (cleanRoom) {
+            roomName = cleanRoom[1];
+          }
+          data.parsed.roomName = roomName.trim();
         }
         
         // 送电时间
-        const dateMatch = item.match(/送电时间[：:]\s*(.+?)(?=\n|申请|$)/);
+        var dateMatch = item.match(/送电时间[：:]\s*([^\n]+)/);
         if (dateMatch) {
-          data.parsed.powerOnDate = dateMatch[1].trim();
+          var powerDate = dateMatch[1];
+          var cleanDate = powerDate.match(/^(.+?)(?=申请|$)/);
+          if (cleanDate) {
+            powerDate = cleanDate[1];
+          }
+          data.parsed.powerOnDate = powerDate.trim();
         }
 
         // 检查必要字段
@@ -1462,89 +1747,196 @@
           data.status = 'success';
         } else {
           data.status = 'error';
-          const missingFields = [];
+          var missingFields = [];
           if (!data.parsed.switchName) missingFields.push('开关名称');
           if (!data.parsed.capacity) missingFields.push('变压器容量');
           if (!data.parsed.k3) missingFields.push('相序CT变比');
           if (!data.parsed.k0) missingFields.push('零序CT变比');
-          data.error = `缺少字段：${missingFields.join('、')}`;
+          data.error = '缺少字段：' + missingFields.join('、');
         }
 
         batchData.push(data);
-      });
+      }
 
       // 显示解析结果
       displayBatchPreview();
     }
 
-    // 显示批量数据预览
+    // 显示批量数据预览 - 增强版本
     function displayBatchPreview() {
-      const previewContainer = document.getElementById('batchPreview');
-      const previewContent = document.getElementById('batchPreviewContent');
-      const statsContainer = document.getElementById('batchStats');
+      var previewContainer = document.getElementById('batchPreview');
+      var previewContent = document.getElementById('batchPreviewContent');
+      var statsContainer = document.getElementById('batchStats');
+      
+      // 更新调试信息
+      updateDebugInfo();
       
       // 统计信息
-      const successCount = batchData.filter(d => d.status === 'success').length;
-      const errorCount = batchData.filter(d => d.status === 'error').length;
+      var successCount = 0;
+      var errorCount = 0;
+      for (var i = 0; i < batchData.length; i++) {
+        if (batchData[i].status === 'success') {
+          successCount++;
+        } else {
+          errorCount++;
+        }
+      }
       
-      statsContainer.innerHTML = `
-        <div class="stat-item">
-          <div class="stat-value">${batchData.length}</div>
-          <div class="stat-label">总数据条数</div>
-        </div>
-        <div class="stat-item" style="background: var(--success-light);">
-          <div class="stat-value" style="color: var(--success-color);">${successCount}</div>
-          <div class="stat-label">解析成功</div>
-        </div>
-        <div class="stat-item" style="background: var(--danger-light);">
-          <div class="stat-value" style="color: var(--danger-color);">${errorCount}</div>
-          <div class="stat-label">解析失败</div>
-        </div>
-      `;
+      statsContainer.innerHTML = 
+        '<div class="stat-item">' +
+          '<div class="stat-value">' + batchData.length + '</div>' +
+          '<div class="stat-label">总数据条数</div>' +
+        '</div>' +
+        '<div class="stat-item" style="background: var(--success-light);">' +
+          '<div class="stat-value" style="color: var(--success-color);">' + successCount + '</div>' +
+          '<div class="stat-label">解析成功</div>' +
+        '</div>' +
+        '<div class="stat-item" style="background: var(--danger-light);">' +
+          '<div class="stat-value" style="color: var(--danger-color);">' + errorCount + '</div>' +
+          '<div class="stat-label">解析失败</div>' +
+        '</div>';
       
       // 预览内容
       previewContent.innerHTML = '';
-      batchData.forEach(data => {
-        const itemDiv = document.createElement('div');
-        itemDiv.className = `batch-item ${data.status === 'error' ? 'error' : ''}`;
+      for (var i = 0; i < batchData.length; i++) {
+        var data = batchData[i];
+        var itemDiv = document.createElement('div');
+        itemDiv.className = 'batch-item' + (data.status === 'error' ? ' error' : '');
         
         if (data.status === 'success') {
-          const capacityDisplay = data.parsed.isMultiple && data.parsed.capacities 
-            ? `${data.parsed.capacities.join('+')} ${data.parsed.capacityUnit}` 
-            : `${data.parsed.capacity} ${data.parsed.capacityUnit}`;
+          var capacityDisplay = data.parsed.isMultiple && data.parsed.capacities 
+            ? data.parsed.capacities.join('+') + ' ' + data.parsed.capacityUnit
+            : data.parsed.capacity + ' ' + data.parsed.capacityUnit;
             
-          itemDiv.innerHTML = `
-            <div class="batch-item-header">
-              <span>序号 ${data.index}: ${data.parsed.switchName}</span>
-              <span style="color: var(--success-color);">✓</span>
-            </div>
-            <div class="batch-item-details">
-              <div>容量: ${capacityDisplay} ${data.parsed.capacityNote ? `(${data.parsed.capacityNote})` : ''}</div>
-              <div>相序变比: ${data.parsed.k3}</div>
-              <div>零序变比: ${data.parsed.k0}</div>
-              ${data.parsed.projectName ? `<div>项目: ${data.parsed.projectName}</div>` : ''}
-              ${data.parsed.powerOnDate ? `<div>送电时间: ${data.parsed.powerOnDate}</div>` : ''}
-            </div>
-          `;
+          itemDiv.innerHTML = 
+            '<div class="batch-item-header">' +
+              '<span>序号 ' + data.index + ': ' + data.parsed.switchName + '</span>' +
+              '<span style="color: var(--success-color);">✓</span>' +
+            '</div>' +
+            '<div class="batch-item-details">' +
+              '<div>容量: ' + capacityDisplay + (data.parsed.capacityNote ? ' (' + data.parsed.capacityNote + ')' : '') + '</div>' +
+              '<div>相序变比: ' + data.parsed.k3 + '</div>' +
+              '<div>零序变比: ' + data.parsed.k0 + '</div>' +
+              (data.parsed.projectName ? '<div>项目: ' + data.parsed.projectName + '</div>' : '') +
+              (data.parsed.powerOnDate ? '<div>送电时间: ' + data.parsed.powerOnDate + '</div>' : '') +
+            '</div>';
         } else {
-          itemDiv.innerHTML = `
-            <div class="batch-item-header">
-              <span>序号 ${data.index}</span>
-              <span style="color: var(--danger-color);">✗ ${data.error}</span>
-            </div>
-            <div class="batch-item-details" style="color: var(--danger-color);">
-              ${data.rawText.substring(0, 100)}...
-            </div>
-          `;
+          itemDiv.innerHTML = 
+            '<div class="batch-item-header">' +
+              '<span>序号 ' + data.index + '</span>' +
+              '<span style="color: var(--danger-color);">✗ ' + data.error + '</span>' +
+            '</div>' +
+            '<div class="batch-item-details" style="color: var(--danger-color);">' +
+              data.rawText.substring(0, 100) + '...' +
+            '</div>';
         }
         
         previewContent.appendChild(itemDiv);
-      });
+      }
       
       previewContainer.style.display = 'block';
       
       // 启用/禁用批量计算按钮
       document.getElementById('batchCalculateBtn').disabled = successCount === 0;
+    }
+
+    // 更新调试信息
+    function updateDebugInfo() {
+      var debugDetails = document.getElementById('debugDetails');
+      if (!debugDetails) return;
+      
+      var browserInfo = getBrowserInfo();
+      var regexSupport = checkRegexSupport();
+      
+      var debugHtml = '';
+      debugHtml += '<div>浏览器: ' + browserInfo.name + ' ' + browserInfo.version + '</div>';
+      debugHtml += '<div>用户代理: ' + navigator.userAgent.substring(0, 100) + '...</div>';
+      debugHtml += '<div>正则表达式支持: ' + (regexSupport.basic ? '✓' : '✗') + ' 基础, ' + 
+                   (regexSupport.lookahead ? '✓' : '✗') + ' 正向预查</div>';
+      debugHtml += '<div>数组方法支持: ' + (Array.prototype.filter ? '✓' : '✗') + ' filter, ' + 
+                   (Array.prototype.indexOf ? '✓' : '✗') + ' indexOf</div>';
+      debugHtml += '<div>字符串方法支持: ' + (String.prototype.trim ? '✓' : '✗') + ' trim, ' + 
+                   (String.prototype.includes ? '✓' : '✗') + ' includes</div>';
+      debugHtml += '<div>识别方法使用: ' + getUsedParsingMethod() + '</div>';
+      
+      debugDetails.innerHTML = debugHtml;
+    }
+
+    // 获取浏览器信息
+    function getBrowserInfo() {
+      var ua = navigator.userAgent;
+      var browser = { name: 'Unknown', version: 'Unknown' };
+      
+      if (ua.indexOf('Chrome') !== -1) {
+        browser.name = 'Chrome';
+        var match = ua.match(/Chrome\/(\d+)/);
+        if (match) browser.version = match[1];
+      } else if (ua.indexOf('Firefox') !== -1) {
+        browser.name = 'Firefox';
+        var match = ua.match(/Firefox\/(\d+)/);
+        if (match) browser.version = match[1];
+      } else if (ua.indexOf('Safari') !== -1) {
+        browser.name = 'Safari';
+        var match = ua.match(/Version\/(\d+)/);
+        if (match) browser.version = match[1];
+      } else if (ua.indexOf('Edge') !== -1) {
+        browser.name = 'Edge';
+        var match = ua.match(/Edge\/(\d+)/);
+        if (match) browser.version = match[1];
+      } else if (ua.indexOf('MSIE') !== -1 || ua.indexOf('Trident') !== -1) {
+        browser.name = 'Internet Explorer';
+        var match = ua.match(/(?:MSIE |rv:)(\d+)/);
+        if (match) browser.version = match[1];
+      }
+      
+      return browser;
+    }
+
+    // 检查正则表达式支持
+    function checkRegexSupport() {
+      var support = { basic: true, lookahead: true };
+      
+      try {
+        var testRegex = /test/;
+        testRegex.test('test');
+      } catch (e) {
+        support.basic = false;
+      }
+      
+      try {
+        var lookaheadRegex = /test(?=ahead)/;
+        lookaheadRegex.test('testahead');
+      } catch (e) {
+        support.lookahead = false;
+      }
+      
+      return support;
+    }
+
+    // 获取使用的解析方法
+    function getUsedParsingMethod() {
+      var input = document.getElementById('batchInput').value.trim();
+      if (!input) return '无数据';
+      
+      var cleanInput = input.replace(/@[\u4e00-\u9fa5\w\s]+/g, '');
+      
+      if (cleanInput.indexOf('项目名称') !== -1 && /\d+[、.]\s*项目名称/.test(cleanInput)) {
+        return '数字序号分割';
+      } else if (cleanInput.indexOf('项目名称') !== -1) {
+        return '项目名称分割';
+      } else if (cleanInput.indexOf('，') !== -1 && cleanInput.indexOf('开关名称') !== -1) {
+        return '逗号分割';
+      } else {
+        return '双换行分割';
+      }
+    }
+
+    // 切换调试信息显示
+    function toggleDebugInfo() {
+      var debugInfo = document.getElementById('debugInfo');
+      if (debugInfo) {
+        debugInfo.style.display = debugInfo.style.display === 'none' ? 'block' : 'none';
+      }
     }
 
     // 批量计算
@@ -2187,49 +2579,66 @@ ${document.getElementById('warningContainer').innerText || ''}
       link.click();
     }
 
-    // 键盘快捷键支持
-    document.addEventListener('keydown', function(e) {
-      // Ctrl + Enter 计算
-      if (e.ctrlKey && e.key === 'Enter') {
-        calculate();
-      }
-      // Ctrl + R 重置
-      else if (e.ctrlKey && e.key === 'r') {
-        e.preventDefault();
-        resetCapacities();
-      }
-      // Ctrl + S 导出
-      else if (e.ctrlKey && e.key === 's') {
-        e.preventDefault();
-        exportResults();
-      }
-    });
+    // 键盘快捷键支持 - 兼容性增强
+    if (document.addEventListener) {
+      document.addEventListener('keydown', function(e) {
+        e = e || window.event;
+        var keyCode = e.keyCode || e.which;
+        var ctrlKey = e.ctrlKey || e.metaKey;
+        
+        // Ctrl + Enter 计算
+        if (ctrlKey && keyCode === 13) {
+          calculate();
+        }
+        // Ctrl + R 重置
+        else if (ctrlKey && (keyCode === 82 || (e.key && e.key.toLowerCase() === 'r'))) {
+          if (e.preventDefault) e.preventDefault();
+          resetCapacities();
+        }
+        // Ctrl + S 导出
+        else if (ctrlKey && (keyCode === 83 || (e.key && e.key.toLowerCase() === 's'))) {
+          if (e.preventDefault) e.preventDefault();
+          exportResults();
+        }
+      });
+    } else if (document.attachEvent) {
+      document.attachEvent('onkeydown', function(e) {
+        e = e || window.event;
+        var keyCode = e.keyCode || e.which;
+        var ctrlKey = e.ctrlKey;
+        
+        if (ctrlKey && keyCode === 13) {
+          calculate();
+        } else if (ctrlKey && keyCode === 82) {
+          e.returnValue = false;
+          resetCapacities();
+        } else if (ctrlKey && keyCode === 83) {
+          e.returnValue = false;
+          exportResults();
+        }
+      });
+    }
 
-    // 点击模态框外部关闭
-    document.getElementById('capacityModal').addEventListener('click', function(e) {
-      if (e.target === this) {
-        closeCapacityModal();
+    // 点击模态框外部关闭 - 兼容性处理
+    var capacityModal = document.getElementById('capacityModal');
+    if (capacityModal) {
+      if (capacityModal.addEventListener) {
+        capacityModal.addEventListener('click', function(e) {
+          if (e.target === this) {
+            closeCapacityModal();
+          }
+        });
+      } else if (capacityModal.attachEvent) {
+        capacityModal.attachEvent('onclick', function(e) {
+          e = e || window.event;
+          if (e.srcElement === capacityModal) {
+            closeCapacityModal();
+          }
+        });
       }
-    });
+    }
 
-    // 输入验证
-    document.getElementById('k3').addEventListener('input', function() {
-      const value = this.value.trim();
-      if (value && !value.match(/^\d+\s*\/\s*\d+$/)) {
-        this.style.borderColor = 'var(--danger-color)';
-      } else {
-        this.style.borderColor = '';
-      }
-    });
-
-    document.getElementById('k0').addEventListener('input', function() {
-      const value = this.value.trim();
-      if (value && !value.match(/^\d+\s*\/\s*\d+$/)) {
-        this.style.borderColor = 'var(--danger-color)';
-      } else {
-        this.style.borderColor = '';
-      }
-    });
+    // 移除原来的输入验证事件监听器（已在 initializeEventListeners 中处理）
   </script>
 </body>
 </html>
