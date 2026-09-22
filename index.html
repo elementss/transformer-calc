@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>变压器继保定值计算器 <v6.4></title>
+  <title>变压器继保定值计算器 <v6.5></title>
   <style>
     /* CSS 变量定义 - 现代化配色方案 */
     :root {
@@ -959,7 +959,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     <div class="header">
       <h1>变压器继保定值计算器</h1>
       <div class="version-info">
-        <p>版本 6.4 | 260528 | 新增Excel导入及文件夹批量导入功能</p>
+        <p>版本 6.5 | 260922 | 新增Excel导入及文件夹批量导入功能</p>
         <p>开发者：hanhan | 反馈邮箱：icevivi8@gmail.com</p>
       </div>
     </div>
@@ -2075,7 +2075,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       // 计算二段保护定值
       let secondProtection;
       if (loadCurrentForSecond > 548) {
-        secondProtection = 1040 * 0.82 / k3;
+        secondProtection = 1040 * 0.826 / k3;
       } else {
         const baseValue = Math.max(1.56 * loadCurrentForSecond, 0.1) / k3;
         let minCapacity;
@@ -2610,7 +2610,7 @@ ${document.getElementById('textResult').innerText}
 
 ${document.getElementById('warningContainer').innerText || ''}
 =====================================
-变压器继保定值计算器 v6.4
+变压器继保定值计算器 v6.5
 开发者：hanhan`;
 
       // 创建并下载文件
